@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Src/">
+    <Project Path="TutorInteligente.Api/TutorInteligente.Api.csproj" />
+    <Project Path="TutorInteligente.Application/TutorInteligente.Application.csproj" />
+    <Project Path="TutorInteligente.Domain/TutorInteligente.Domain.csproj" />
+    <Project Path="TutorInteligente.Infrastructure/TutorInteligente.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Test/" />
+</Solution>
