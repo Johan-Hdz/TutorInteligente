@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.AI" Version="10.5.1" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.5.1" />
+    <PackageReference Include="Neo4j.Driver" Version="6.0.0" />
     <PackageReference Include="OpenAI" Version="2.10.0" />
   </ItemGroup>
 
