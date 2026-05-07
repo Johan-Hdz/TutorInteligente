@@ -7,7 +7,8 @@ namespace TutorInteligente.Domain.Modelos
     public record ParametrosEvaluacion(
 
         string TemaPrincipal,
-        int GradoEscolar,
+        int cantidadPreguntas,
+        // int GradoEscolar,
         List<string> ConceptosClave,
         bool EsValida,
         string MensajeError = ""

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.AI;
+﻿using System.Text.Json;
+using Microsoft.Extensions.AI;
 using TutorInteligente.Application.Interfaces;
 using TutorInteligente.Domain.Modelos;
 
@@ -6,62 +7,50 @@ namespace TutorInteligente.Infrastructure.ServiciosLlm;
 
 public class MotorGeneracionMeai(IChatClient chatClient) : IMotorGeneracion
 {
-    public async Task<string> GenerarEvaluacionAsync(ContextoRecuperado contexto)
+    // Cambié el nombre del parámetro de 'contexto' a 'esqueleto' para mayor claridad
+    public async Task<string> GenerarEvaluacionAsync(Evaluacion esqueleto)
     {
-        // 1. Extraemos solo los nombres de los temas que son prerrequisitos
-        var nombresPrerrequisitos = contexto.Subgrafo
-            .Where(nodo => nodo.EsPrerrequisito)
-            .Select(nodo => nodo.Nombre);
-            
-        string listaPrerrequisitos = string.Join(", ", nombresPrerrequisitos);
+        // 1. Convertimos el esqueleto determinista a un JSON ligero para que el LLM lo lea
+        var jsonOptions = new JsonSerializerOptions { WriteIndented = true };
+        string jsonEsqueleto = JsonSerializer.Serialize(esqueleto, jsonOptions);
 
-        // 2. Construimos el prompt interpolado con los datos de Neo4j y del Módulo de Interpretación
+        // 2. Construimos el nuevo prompt. Ahora le exigimos que devuelva JSON.
         string promptGraphRag = $@"Actúa como un Experto en Pedagogía Matemática y Diseño Curricular para la SEP (Nueva Escuela Mexicana). 
-Tu tarea es generar un ítem de evaluación diagnóstica basado en un esquema de conocimientos previos.
+Tu tarea es generar el contenido de una evaluación matemática rellenando un esqueleto JSON predefinido.
 
-CONTEXTO CURRICULAR EXTRAÍDO DEL GRAFO DE CONOCIMIENTO:
-- Tema Principal a evaluar: {contexto.Parametros.TemaPrincipal}
-- Nivel Educativo: {contexto.Parametros.GradoEscolar} grado de primaria.
-- Prerrequisitos cognitivos del alumno para este tema: {listaPrerrequisitos}
+REGLAS ESTRICTAS:
+1. Recibirás un JSON con la estructura de la evaluación. El tema principal a evaluar es '{esqueleto.TemaPrincipal}'.
+2. Para cada elemento en la lista de 'Preguntas', redacta un problema matemático práctico y contextualizado (apropiado para educación primaria) en el campo 'Enunciado'.
+3. Para cada 'Inciso' dentro de la pregunta, calcula el valor matemático correspondiente y ponlo en el campo 'ValorCalculado':
+   - Si 'EsCorrecta' es true: El valor debe ser la respuesta matemáticamente correcta al problema.
+   - Si 'EsCorrecta' es false: El valor debe ser INCORRECTO. Para generar este distractor, debes simular que el alumno intentó resolver el problema pero falló específicamente en el tema indicado en 'TextoTema' (que es un prerrequisito cognitivo).
+4. El formato de salida debe ser ÚNICA Y EXCLUSIVAMENTE el JSON modificado y relleno. No agregues etiquetas markdown (como ```json), no saludes, ni des explicaciones.
 
-INSTRUCCIONES:
-1. Genera 1 ejercicio práctico (problema matemático) apropiado para el grado escolar que evalúe la comprensión del 'Tema Principal'.
-2. Diseña 3 opciones de respuesta (A, B, C) siguiendo ESTRICTAMENTE esta lógica de generación de errores:
-   - OPCIÓN A (Correcta): El resultado matemático exacto siguiendo el procedimiento correcto.
-   - OPCIÓN B (Distractor por Prerrequisito): Simula que el alumno cometió un error operando en uno de los 'Prerrequisitos cognitivos' (ej. falló en {listaPrerrequisitos}).
-   - OPCIÓN C (Distractor Conceptual): Simula que el alumno no entendió el concepto lógico del tema central.
+ESQUELETO A RELLENAR:
+{jsonEsqueleto}";
 
-FORMATO DE SALIDA REQUERIDO:
----
-**Enunciado del Problema:** [Pregunta]
-
-**Opciones:**
-a) [Respuesta A]
-b) [Respuesta B]
-c) [Respuesta C]
-
-**Metadatos para el Tutor Inteligente (Backend):**
-* **Si elige A:** Estado: Dominio del tema. Acción: Avanzar.
-* **Si elige B:** Tipo de Error: Fallo en Prerrequisito. Diagnóstico: Falla en [Prerrequisito específico]. Recomendación: Repasar prerrequisito.
-* **Si elige C:** Tipo de Error: Conceptual. Diagnóstico: Idea errónea sobre el tema principal. Recomendación: Volver a explicar la teoría base.
----";
-
-        var opciones = new ChatOptions { Temperature = 0.3f }; // Poca temperatura para mantener la lógica estricta
+        // 3. Mantenemos la temperatura baja para evitar alucinaciones en los cálculos
+        var opciones = new ChatOptions
+        {
+            Temperature = 0.2f
+        };
 
         try
         {
             var mensajes = new[]
             {
-        new ChatMessage(ChatRole.User, promptGraphRag)
-    };
+                new ChatMessage(ChatRole.User, promptGraphRag)
+            };
 
-            // Correcto para la versión Preview que tienes instalada
+            // Llamada al modelo con Microsoft.Extensions.AI
             var respuesta = await chatClient.GetResponseAsync(mensajes, opciones);
-            return respuesta.Text ?? "Error: No se pudo generar la evaluación.";
+
+            // Retornamos el string crudo (que ahora será un JSON estructurado)
+            return respuesta.Text ?? "{}";
         }
         catch (Exception ex)
         {
-            return $"Error interno en el LLM: {ex.Message}";
+            return $"{{\"error\": \"Error interno en el LLM: {ex.Message}\"}}";
         }
     }
 }

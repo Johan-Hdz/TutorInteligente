@@ -6,7 +6,7 @@ namespace TutorInteligente.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class GrafoController(IGrafoConocimientoRepository grafoRepo) : ControllerBase
+    public class GrafoController(INeo4jService grafoRepo) : ControllerBase
     {
         // Un endpoint GET simple para probar la extracción
         [HttpGet("prerrequisitos/{tema}")]

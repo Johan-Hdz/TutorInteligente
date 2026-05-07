@@ -3,6 +3,8 @@ using OpenAI.Chat;
 using Neo4j.Driver;
 using TutorInteligente.Application.Interfaces;
 using TutorInteligente.Infrastructure.ServiciosLlm;
+using TutorInteligente.Application.Servicios;
+using TutorInteligente.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,29 +17,18 @@ var builder = WebApplication.CreateBuilder(args);
 string apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")
     ?? throw new InvalidOperationException("La variable de entorno OPENAI_API_KEY no se encontró en Windows.");
 
-// 2. Registrar el ChatClient de OpenAI como Singleton (solo necesitamos uno para toda la app)
-// Pasamos el modelo que indicaste y tu clave
-// 3. CREAMOS la variable (Aquí es donde nace el cliente y desaparece tu error)
-IChatClient miClienteIa = new ChatClient("gpt-5.4-mini", apiKey).AsIChatClient();
+// Indicar el modelo y la clave al crear el ChatClient de OpenAI.
+// 2. CREAMOS la variable
+IChatClient miClienteIa = new ChatClient("gpt-4o-mini", apiKey).AsIChatClient();
 
-// 3. CAMBIO DE CONTRATO: Quitamos el Mock y registramos la implementación de OpenAI
-builder.Services.AddScoped<TutorInteligente.Application.Interfaces.IExtractorEntidades,
-                           TutorInteligente.Infrastructure.ServiciosLlm.ExtractorEntidadesMeai>();
-
-// Registro del contrato y la implementación mock
-//builder.Services.AddScoped<TutorInteligente.Application.Interfaces.IExtractorEntidades,
-//                           TutorInteligente.Infrastructure.ServiciosLlm.ExtractorEntidadesMock>();
-
-// Registro del servicio de aplicación
-builder.Services.AddScoped<TutorInteligente.Application.Servicios.ModuloInterpretacionService>();
-
+// 3. Registrar el ChatClient de OpenAI como Singleton (solo necesitamos uno para toda la app)
+builder.Services.AddSingleton<IChatClient>(miClienteIa);
 #endregion
 
 #region Configuracion de Neo4j
-// Configuración de Neo4j
 // --- CONFIGURACIÓN DE NEO4J ---
 // Idealmente, estas credenciales vendrán de variables de entorno o Azure Key Vault,
-// al igual que hiciste con las llaves de OpenAI/Gemini.
+// al igual que hiciste con las llaves de OpenAI.
 string neo4jUri = Environment.GetEnvironmentVariable("NEO4J_URI") ?? "bolt://localhost:7687";
 string neo4jUser = Environment.GetEnvironmentVariable("NEO4J_USER") ?? "neo4j";
 string neo4jPassword = Environment.GetEnvironmentVariable("NEO4J_PASSWORD") ?? "2018134021";
@@ -48,23 +39,28 @@ builder.Services.AddSingleton<IDriver>(provider =>
 );
 
 // Registro del repositorio (Scoping porque se crea uno por cada petición HTTP)
-builder.Services.AddScoped<TutorInteligente.Application.Interfaces.IGrafoConocimientoRepository,
-                           TutorInteligente.Infrastructure.Data.Neo4jGrafoRepository>();
+builder.Services.AddScoped<INeo4jService, Neo4jService>();
 #endregion
 
-builder.Services.AddSingleton<IChatClient>(miClienteIa);
+#region Configuracion de los contratos y servicios de la aplicación
+// Quitamos el Mock y registramos la implementación de OpenAI con Microsoft.Extensions.AI
+builder.Services.AddScoped<IExtractorEntidades, ExtractorEntidadesMeai>();
+
+// Registro del servicio de aplicación
+builder.Services.AddScoped<ModuloInterpretacionService>();
 
 // Agregar el motor de generacion
 builder.Services.AddScoped<IMotorGeneracion, MotorGeneracionMeai>();
 
-// Registro del servicio orquestador
-builder.Services.AddScoped<TutorInteligente.Application.Servicios.RecuperadorHibridoService>();
+// Registro del servicio orquestador (El que maneja el flujo de GraphRAG)
+builder.Services.AddScoped<RecuperadorHibridoService>();
 
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// --- NUEVO: Registro del Generador de Evaluaciones Estructuradas ---
+builder.Services.AddScoped<IEvaluacionGeneratorService, EvaluacionGeneratorService>();
+#endregion
 
-// configuración de CORS para permitir solicitudes desde el frontend (ajusta el origen según tu configuración)
+#region Configuración de CORS
+// configuración de CORS para permitir solicitudes desde el frontend
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("PermitirFrontend", policy =>
@@ -74,8 +70,12 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod();
     });
 });
+#endregion
 
-
+#region configuración por default del proyecto, sin cambios
+builder.Services.AddControllers();
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
@@ -89,9 +89,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
+#endregion

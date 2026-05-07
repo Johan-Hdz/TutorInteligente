@@ -29,7 +29,7 @@ namespace TutorInteligente.Infrastructure.ServiciosLlm
                 conceptos.Add("Denominador");
             }
 
-            return new ParametrosEvaluacion(tema, grado, conceptos, true);
+            return new ParametrosEvaluacion(tema, 0, conceptos, true);
         }
     }
 }
