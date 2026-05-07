@@ -6,27 +6,43 @@ namespace TutorInteligente.Infrastructure.Data;
 
 public class Neo4jService(IDriver driver) : INeo4jService
 {
-    public async Task<List<TemaJerarquico>> ObtenerPrerrequisitosAsync(string temaPrincipal)
+   public async Task<(List<TemaJerarquico> Prerrequisitos, string EjemploTexto)> ObtenerDatosCompletosTemaAsync(string temaPrincipal)
+{
+    // Cambiamos t.embedding por la propiedad que guarda el texto (ej. t.ejemplo_problema)
+    var query = @"
+        MATCH (t:Tema {nombre: $tema})
+        OPTIONAL MATCH (t)-[:REQUIERE_DE]->(p:Tema)
+        RETURN t.ejemplo_problema AS ejemplo, collect(p.nombre) AS prerrequisitos
+    ";
+
+    await using var session = driver.AsyncSession();
+    var result = await session.RunAsync(query, new { tema = temaPrincipal });
+
+    var prerrequisitos = new List<TemaJerarquico>();
+    string ejemploTexto = ""; // Ahora es un string
+
+    if (await result.FetchAsync())
     {
-        var query = @"
-            MATCH (t:Tema {nombre: $tema})-[:REQUIERE_DE]->(p:Tema)
-            RETURN p.nombre AS prerrequisito";
-
-        await using var session = driver.AsyncSession();
-        var result = await session.RunAsync(query, new { tema = temaPrincipal });
-
-        var prerrequisitos = new List<TemaJerarquico>();
-        await foreach (var record in result)
+        // 1. Extraemos el texto del ejemplo
+        var ejemploValue = result.Current["ejemplo"];
+        if (ejemploValue != null)
         {
-            // Pasamos los valores directamente al constructor entre paréntesis
-            prerrequisitos.Add(new TemaJerarquico(
-                record["prerrequisito"].As<string>(),
-                true
-            ));
+            ejemploTexto = ejemploValue.As<string>();
         }
 
-        return prerrequisitos;
+        // 2. Extraer la lista de prerrequisitos
+        var nombresPrerrequisitos = result.Current["prerrequisitos"].As<List<string>>();
+        foreach (var nombre in nombresPrerrequisitos)
+        {
+            if (!string.IsNullOrEmpty(nombre))
+            {
+                prerrequisitos.Add(new TemaJerarquico(nombre, true));
+            }
+        }
     }
+
+    return (prerrequisitos, ejemploTexto);
+}
 }
 
 //public class Neo4jService(IDriver driver) : IGrafoConocimientoRepository

@@ -22,7 +22,7 @@ public class RecuperadorHibridoService(
         //    return new ContextoRecuperado(parametros, [], false, "Solo aplica para 1ro a 4to grado.");
 
         // 3. Navegar el grafo (Recuperación de prerrequisitos / distractores)
-        var subgrafo = await grafoRepo.ObtenerPrerrequisitosAsync(parametros.TemaPrincipal);
+        var (subgrafo, ejemploTexto) = await grafoRepo.ObtenerDatosCompletosTemaAsync(parametros.TemaPrincipal);
 
         if (subgrafo.Count == 0)
             return new ContextoRecuperado(parametros, [], false, $"No se encontró el tema '{parametros.TemaPrincipal}'.");
@@ -43,7 +43,7 @@ public class RecuperadorHibridoService(
 
         // 6. Llamada final al Motor de Generación (LLM)
         // Ahora le pasamos el esqueleto determinista para que solo se encargue de rellenar los huecos
-        string evaluacionFinal = await motorGeneracion.GenerarEvaluacionAsync(esqueletoEvaluacion);
+        string evaluacionFinal = await motorGeneracion.GenerarEvaluacionAsync(esqueletoEvaluacion, ejemploTexto);
 
         // 7. Retornar el objeto COMPLETO
         return new ContextoRecuperado(
