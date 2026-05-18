@@ -5,8 +5,8 @@ using TutorInteligente.Domain.Modelos;
 
 namespace TutorInteligente.Application.Interfaces
 {
-    public interface IEvaluacionGeneratorService
+    public interface IModuloGeneracionService
     {
-        Evaluacion GenerarEstructura(string temaPrincipal, List<string> prerrequisitos, int cantidadPreguntas);
+        Task<string> GenerarEvaluacionAsync(Evaluacion esqueleto, string ejemploTexto);
     }
 }

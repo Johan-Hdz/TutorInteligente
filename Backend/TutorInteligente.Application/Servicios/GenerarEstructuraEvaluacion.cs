@@ -1,7 +1,7 @@
 ﻿using TutorInteligente.Application.Interfaces;
 using TutorInteligente.Domain.Modelos;
 
-public class EvaluacionGeneratorService : IEvaluacionGeneratorService
+public class GenerarEstructuraEvaluacion : IGenerarEstructuraEvaluacion
 {
     public Evaluacion GenerarEstructura(string temaPrincipal, List<string> prerrequisitos, int cantidadPreguntas)
     {

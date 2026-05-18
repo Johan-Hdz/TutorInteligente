@@ -1,10 +1,12 @@
 using Microsoft.Extensions.AI;
-using OpenAI.Chat;
 using Neo4j.Driver;
+using OpenAI.Chat;
+using OpenAI.Embeddings;
 using TutorInteligente.Application.Interfaces;
-using TutorInteligente.Infrastructure.ServiciosLlm;
+using TutorInteligente.Application.Interfaces.Infrastructure;
 using TutorInteligente.Application.Servicios;
 using TutorInteligente.Infrastructure.Data;
+using TutorInteligente.Infrastructure.ServiciosLlm;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,12 +19,25 @@ var builder = WebApplication.CreateBuilder(args);
 string apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")
     ?? throw new InvalidOperationException("La variable de entorno OPENAI_API_KEY no se encontró en Windows.");
 
-// Indicar el modelo y la clave al crear el ChatClient de OpenAI.
-// 2. CREAMOS la variable
-IChatClient miClienteIa = new ChatClient("gpt-4o-mini", apiKey).AsIChatClient();
 
-// 3. Registrar el ChatClient de OpenAI como Singleton (solo necesitamos uno para toda la app)
+// 1. Registro del ChatClient (Para generar texto/JSON)
+IChatClient miClienteIa = new ChatClient("gpt-4o-mini", apiKey).AsIChatClient();
 builder.Services.AddSingleton<IChatClient>(miClienteIa);
+
+// --- NUEVO: Registro del Generador de Embeddings ---
+// 2. Creamos el cliente de embeddings de OpenAI apuntando al modelo específico
+var clienteEmbeddingsOpenAi = new EmbeddingClient("text-embedding-3-small", apiKey);
+
+// 3. Lo convertimos a la interfaz estándar de Microsoft.Extensions.AI y lo registramos
+IEmbeddingGenerator<string, Embedding<float>> miGeneradorEmbeddings = clienteEmbeddingsOpenAi.AsIEmbeddingGenerator();
+builder.Services.AddSingleton(miGeneradorEmbeddings);
+
+//// Indicar el modelo y la clave al crear el ChatClient de OpenAI.
+//// 2. CREAMOS la variable
+//IChatClient miClienteIa = new ChatClient("gpt-4o-mini", apiKey).AsIChatClient();
+
+//// 3. Registrar el ChatClient de OpenAI como Singleton (solo necesitamos uno para toda la app)
+//builder.Services.AddSingleton<IChatClient>(miClienteIa);
 #endregion
 
 #region Configuracion de Neo4j
@@ -43,20 +58,29 @@ builder.Services.AddScoped<INeo4jService, Neo4jService>();
 #endregion
 
 #region Configuracion de los contratos y servicios de la aplicación
-// Quitamos el Mock y registramos la implementación de OpenAI con Microsoft.Extensions.AI
+
+// 1. Registro del servicio de interpretación (El que se comunica con el LLM para extraer entidades)
+// Registro del servicio de aplicación
+builder.Services.AddScoped<IModuloInterpretacionService, ModuloInterpretacionService>();
+
+// 1.1. Registro del servicio de extracción de entidades que usa el Módulo de Interpretación.
+// Este es el que se comunica directamente con el LLM para extraer los parámetros de la consulta del docente.
+// Su puede usar un mock o una implementación real. Aquí registramos la implementación real que usa MEAI.
 builder.Services.AddScoped<IExtractorEntidades, ExtractorEntidadesMeai>();
 
-// Registro del servicio de aplicación
-builder.Services.AddScoped<ModuloInterpretacionService>();
+
+//2. Registro del servicio orquestador (El que maneja el flujo de GraphRAG)
+builder.Services.AddScoped<IRecuperadorHibridoService, RecuperadorHibridoService>();
+
+
+// 4. Registro del servicio de generación de la estructura base de la evaluación (Fase 1)
+builder.Services.AddScoped<IGenerarEstructuraEvaluacion, GenerarEstructuraEvaluacion>();
+
 
 // Agregar el motor de generacion
-builder.Services.AddScoped<IMotorGeneracion, MotorGeneracionMeai>();
+builder.Services.AddScoped<ILLMClient, MeaiLLMClient>();
+builder.Services.AddScoped<IModuloGeneracionService, ModuloGeneracionService>();
 
-// Registro del servicio orquestador (El que maneja el flujo de GraphRAG)
-builder.Services.AddScoped<RecuperadorHibridoService>();
-
-// --- NUEVO: Registro del Generador de Evaluaciones Estructuradas ---
-builder.Services.AddScoped<IEvaluacionGeneratorService, EvaluacionGeneratorService>();
 #endregion
 
 #region Configuración de CORS

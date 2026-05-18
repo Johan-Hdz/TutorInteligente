@@ -5,8 +5,8 @@ using TutorInteligente.Domain.Modelos;
 
 namespace TutorInteligente.Application.Interfaces
 {
-    public interface IExtractorEntidades
+    public interface IGenerarEstructuraEvaluacion
     {
-        Task<ParametrosEvaluacion> ExtraerAsync(string consultaDocente);
+        Evaluacion GenerarEstructura(string temaPrincipal, List<string> prerrequisitos, int cantidadPreguntas);
     }
 }

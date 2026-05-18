@@ -1,48 +1,50 @@
 ﻿using Neo4j.Driver;
-using TutorInteligente.Application.Interfaces;
+using TutorInteligente.Application.Interfaces.Infrastructure;
 using TutorInteligente.Domain.Modelos; // Asegúrate de que aquí esté TemaJerarquico
 
 namespace TutorInteligente.Infrastructure.Data;
 
 public class Neo4jService(IDriver driver) : INeo4jService
 {
-   public async Task<(List<TemaJerarquico> Prerrequisitos, string EjemploTexto)> ObtenerDatosCompletosTemaAsync(string temaPrincipal)
-{
-    // Cambiamos t.embedding por la propiedad que guarda el texto (ej. t.ejemplo_problema)
-    var query = @"
-        MATCH (t:Tema {nombre: $tema})
-        OPTIONAL MATCH (t)-[:REQUIERE_DE]->(p:Tema)
-        RETURN t.ejemplo_problema AS ejemplo, collect(p.nombre) AS prerrequisitos
-    ";
-
-    await using var session = driver.AsyncSession();
-    var result = await session.RunAsync(query, new { tema = temaPrincipal });
-
-    var prerrequisitos = new List<TemaJerarquico>();
-    string ejemploTexto = ""; // Ahora es un string
-
-    if (await result.FetchAsync())
+    public async Task<(List<TemaJerarquico> Prerrequisitos, string EjemploTexto)> ObtenerDatosCompletosTemaAsync(float[] temaPrincipalEmbedding)
     {
-        // 1. Extraemos el texto del ejemplo
-        var ejemploValue = result.Current["ejemplo"];
-        if (ejemploValue != null)
-        {
-            ejemploTexto = ejemploValue.As<string>();
-        }
+        // Usamos búsqueda vectorial (db.index.vector.queryNodes) para encontrar el nodo más similar
+        var query = @"
+    CALL db.index.vector.queryNodes('nombre_tema_embedding_index', 1, $tema) YIELD node AS t, score
+    WHERE score >= 0.85
+    OPTIONAL MATCH (t)-[:REQUIERE_DE]->(p:Tema)
+    RETURN t.ejemplo_problema AS ejemplo, collect(p.nombre) AS prerrequisitos, score";
 
-        // 2. Extraer la lista de prerrequisitos
-        var nombresPrerrequisitos = result.Current["prerrequisitos"].As<List<string>>();
-        foreach (var nombre in nombresPrerrequisitos)
+        // 0.85 es una metrica de confianza y pueden preguntar por que
+
+        await using var session = driver.AsyncSession();
+
+        // Le pasamos el embedding convertido a List<float> (Neo4j lo prefiere así)
+        var result = await session.RunAsync(query, new { tema = temaPrincipalEmbedding.ToList() });
+
+        var prerrequisitos = new List<TemaJerarquico>();
+        string ejemploTexto = "";
+
+        if (await result.FetchAsync())
         {
-            if (!string.IsNullOrEmpty(nombre))
+            var ejemploValue = result.Current["ejemplo"];
+            if (ejemploValue != null)
             {
-                prerrequisitos.Add(new TemaJerarquico(nombre, true));
+                ejemploTexto = ejemploValue.As<string>();
+            }
+
+            var nombresPrerrequisitos = result.Current["prerrequisitos"].As<List<string>>();
+            foreach (var nombre in nombresPrerrequisitos)
+            {
+                if (!string.IsNullOrWhiteSpace(nombre))
+                {
+                    prerrequisitos.Add(new TemaJerarquico(nombre, true));
+                }
             }
         }
-    }
 
-    return (prerrequisitos, ejemploTexto);
-}
+        return (prerrequisitos, ejemploTexto);
+    }
 }
 
 //public class Neo4jService(IDriver driver) : IGrafoConocimientoRepository

@@ -9,7 +9,7 @@ namespace TutorInteligente.Domain.Modelos
         string TemaPrincipal,
         int cantidadPreguntas,
         // int GradoEscolar,
-        List<string> ConceptosClave,
+        //List<string> ConceptosClave,
         bool EsValida,
         string MensajeError = ""
     );

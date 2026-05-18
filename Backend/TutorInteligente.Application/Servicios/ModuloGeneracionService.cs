@@ -1,22 +1,25 @@
-﻿using System.Text.Json;
-using Microsoft.Extensions.AI;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Text.Json;
 using TutorInteligente.Application.Interfaces;
+using TutorInteligente.Application.Interfaces.Infrastructure;
 using TutorInteligente.Domain.Modelos;
 
-namespace TutorInteligente.Infrastructure.ServiciosLlm;
+namespace TutorInteligente.Application.Servicios;
 
-public class MotorGeneracionMeai(IChatClient chatClient) : IMotorGeneracion
+public class ModuloGeneracionService(ILLMClient llmClient) : IModuloGeneracionService
 {
-    // Ahora recibimos el string con el ejemplo de texto
     public async Task<string> GenerarEvaluacionAsync(Evaluacion esqueleto, string ejemploTexto)
     {
+        // 1. Lógica pura de aplicación: Preparación de datos
         var jsonOptions = new JsonSerializerOptions { WriteIndented = true };
         string jsonEsqueleto = JsonSerializer.Serialize(esqueleto, jsonOptions);
 
-        // Agregamos una regla en el prompt para obligarlo a usar el contexto
+        // 2. Lógica de negocio/dominio: El Prompt pedagógico
         string promptGraphRag = $@"Actúa como un Experto en Pedagogía Matemática y Diseño Curricular para la SEP (Nueva Escuela Mexicana). 
 Tu tarea es generar el contenido de una evaluación matemática rellenando un esqueleto JSON predefinido.
-
+   
 REGLAS ESTRICTAS:
 1. Recibirás un JSON con la estructura de la evaluación. El tema principal a evaluar es '{esqueleto.TemaPrincipal}'.
 2. EJEMPLO DE REFERENCIA: Usa el siguiente problema como guía de estilo, nivel de dificultad y contexto para generar los nuevos problemas: 
@@ -29,20 +32,7 @@ REGLAS ESTRICTAS:
 
 ESQUELETO A RELLENAR:{jsonEsqueleto}";
 
-        var opciones = new ChatOptions
-        {
-            Temperature = 0.2f
-        };
-
-        try
-        {
-            var mensajes = new[] { new ChatMessage(ChatRole.User, promptGraphRag) };
-            var respuesta = await chatClient.GetResponseAsync(mensajes, opciones);
-            return respuesta.Text ?? "{}";
-        }
-        catch (Exception ex)
-        {
-            return $"{{\"error\": \"Error interno en el LLM: {ex.Message}\"}}";
-        }
+        // 3. Delegar la ejecución a la capa de infraestructura
+        return await llmClient.EjecutarPromptAsync(promptGraphRag, temperature: 0.0f);
     }
 }

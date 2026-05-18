@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using TutorInteligente.Application.Interfaces;
+using TutorInteligente.Application.Interfaces.Infrastructure;
 using TutorInteligente.Domain.Modelos;
 
 namespace TutorInteligente.Infrastructure.ServiciosLlm
@@ -29,7 +29,7 @@ namespace TutorInteligente.Infrastructure.ServiciosLlm
                 conceptos.Add("Denominador");
             }
 
-            return new ParametrosEvaluacion(tema, 0, conceptos, true);
+            return new ParametrosEvaluacion(tema, 0, true);
         }
     }
 }

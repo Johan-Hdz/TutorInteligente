@@ -1,23 +1,52 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using TutorInteligente.Api.DTOs;
-using TutorInteligente.Application.Servicios;
+using TutorInteligente.Application.Interfaces;
 
 namespace TutorInteligente.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class InterpretacionController(ModuloInterpretacionService interpretacionService) : ControllerBase
+    public class InterpretacionController(IModuloInterpretacionService interpretacionService, 
+        IRecuperadorHibridoService recuperadorHibridoService, 
+        IGenerarEstructuraEvaluacion evaluacionGeneratorService, 
+        IModuloGeneracionService motorGeneracionMeai) : ControllerBase
     {
-        [HttpPost("procesar")]
-        public async Task<IActionResult> ProcesarConsulta([FromBody] InterpretacionRequest request)
+        [HttpPost("orquestar")]
+        public async Task<IActionResult> OrquestarGraphRAG([FromBody] InterpretacionRequest request)
         {
-            var resultado = await interpretacionService.ProcesarConsultaAsync(request.Consulta);
+            // PASO 1: Interpretación de la Consulta
+            var parametros = await interpretacionService.ProcesarConsultaAsync(request.Consulta);
 
-            if (!resultado.EsValida)
-                return BadRequest(resultado);
+            // Validación de los parámetros extraídos
+            if (!parametros.EsValida)
+                return BadRequest(parametros);
 
-            return Ok(resultado);
+            // PASO 2: Recuperación Híbrida (Embedding + Neo4j)
+            // Pasamos el objeto completo porque el recuperador podría necesitar el GradoEscolar para filtrar
+            var contextoRecuperado = await recuperadorHibridoService.RecuperarContextoAsync(parametros);
+
+            if (contextoRecuperado == null || !contextoRecuperado.Subgrafo.Any())
+            {
+                return NotFound(new { Error = "No se encontraron temas afines en la base de conocimiento para tu solicitud." });
+            }
+
+            // PASO 3: Ensamblaje del Esqueleto (Motor de Generación - Fase 1)
+
+            // a) Extraemos solo los nombres de los prerrequisitos del Subgrafo recuperado
+            var nombresPrerrequisitos = contextoRecuperado.Subgrafo
+                                                          .Select(p => p.Nombre)
+                                                          .ToList();
+            // b) Generamos la estructura base determinista
+            var esqueletoEvaluacion = evaluacionGeneratorService.GenerarEstructura(
+                temaPrincipal: parametros.TemaPrincipal,
+                prerrequisitos: nombresPrerrequisitos,
+                cantidadPreguntas: parametros.cantidadPreguntas
+            );
+
+
+            // PASO 4 (Próximamente): Motor de Generación
+             var evaluacion = await motorGeneracionMeai.GenerarEvaluacionAsync(esqueletoEvaluacion, contextoRecuperado.Mensaje);
+             return Ok(evaluacion);
         }
     }
 }

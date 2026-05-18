@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
@@ -6,131 +6,117 @@ import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 
 // ==========================================
+// HOOK PARA TEXTAREA AUTO-AJUSTABLE
+// ==========================================
+function useAutoResizeTextarea({ minHeight, maxHeight }) {
+  const textareaRef = useRef(null);
+
+  const adjustHeight = useCallback(
+    (reset) => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+
+      if (reset) {
+        textarea.style.height = `${minHeight}px`;
+        return;
+      }
+
+      textarea.style.height = `${minHeight}px`;
+      const newHeight = Math.max(
+        minHeight,
+        Math.min(textarea.scrollHeight, maxHeight ?? Number.POSITIVE_INFINITY),
+      );
+      textarea.style.height = `${newHeight}px`;
+    },
+    [minHeight, maxHeight],
+  );
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = `${minHeight}px`;
+    }
+  }, [minHeight]);
+
+  useEffect(() => {
+    const handleResize = () => adjustHeight();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [adjustHeight]);
+
+  return { textareaRef, adjustHeight };
+}
+
+// ==========================================
 // CONFIGURACIÓN DE ESTILOS (UI/UX)
 // ==========================================
 const colors = {
-  primary: "#6f1d46", // Burdeos (Académico)
-  secondary: "#008f39", // Verde (Acción/Educación)
-  bgBody: "#f0f2f5",
-  bgChat: "#ffffff",
+  primary: "#6f1d46",
+  secondary: "#008f39",
   textMain: "#333333",
   textLight: "#757575",
-  bubbleUser: "#e1f5fe", // Azul muy claro para el usuario
-  bubbleAi: "#f1f0f0", // Gris claro para la IA
+  bubbleUser: "#f4f4f4",
+  bubbleAi: "transparent",
 };
 
 const styles = {
   appContainer: {
     fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    backgroundColor: colors.bgBody,
-    minHeight: "100vh",
-    padding: "20px",
-    color: colors.textMain,
+    backgroundColor: "#ffffff",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    margin: 0,
+    padding: 0,
+    overflow: "hidden",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
   },
-  header: {
-    textAlign: "center",
-    marginBottom: "30px",
-    borderBottom: `3px solid ${colors.primary}`,
-    paddingBottom: "15px",
-    width: "100%",
-    maxWidth: "1000px",
-  },
-  title: {
-    color: colors.primary,
-    fontSize: "2.2rem",
-    margin: "0 0 5px 0",
-    fontWeight: "800",
-  },
-  subtitle: {
-    color: colors.textLight,
-    fontSize: "1.1rem",
-    margin: 0,
-  },
   chatWindow: {
-    backgroundColor: colors.bgChat,
     width: "100%",
-    maxWidth: "1000px",
-    height: "70vh",
-    borderRadius: "12px",
-    boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+    maxWidth: "800px",
+    height: "100%",
     display: "flex",
     flexDirection: "column",
-    overflow: "hidden",
+    border: "none",
+    boxShadow: "none",
   },
   chatMessages: {
     flex: 1,
-    padding: "25px",
+    padding: "20px",
     overflowY: "auto",
     display: "flex",
     flexDirection: "column",
-    gap: "15px",
+    gap: "25px",
   },
-  // Burbujas de Chat
   bubble: {
     padding: "12px 18px",
     borderRadius: "18px",
-    maxWidth: "75%",
+    maxWidth: "85%",
     lineHeight: "1.5",
     fontSize: "15px",
     position: "relative",
+    wordBreak: "break-word", // FIX DEL BUG: Fuerza el salto de línea en textos largos sin espacios
+    textAlign: "left", // <-- AÑADE ESTA LÍNEA
   },
   bubbleUser: {
     alignSelf: "flex-end",
-    backgroundColor: colors.secondary,
-    color: "white",
+    backgroundColor: colors.bubbleUser,
+    color: colors.textMain,
     borderBottomRightRadius: "4px",
   },
   bubbleAi: {
     alignSelf: "flex-start",
     backgroundColor: colors.bubbleAi,
     color: colors.textMain,
-    borderTopLeftRadius: "4px",
-    border: "1px solid #e0e0e0",
-  },
-  // Input Area
-  inputArea: {
-    padding: "15px 25px",
-    borderTop: "1px solid #eee",
-    backgroundColor: "#fff",
-    display: "flex",
-    gap: "10px",
-    alignItems: "center",
-  },
-  textarea: {
-    flex: 1,
-    padding: "12px",
-    borderRadius: "24px",
-    border: "1px solid #ccc",
-    fontSize: "15px",
-    resize: "none",
-    outline: "none",
-    transition: "border-color 0.2s",
-    fontFamily: "inherit",
-  },
-  sendButton: {
-    backgroundColor: colors.secondary,
-    color: "white",
     border: "none",
-    padding: "12px 24px",
-    borderRadius: "24px",
-    fontSize: "15px",
-    fontWeight: "bold",
-    cursor: "pointer",
-    transition: "background-color 0.2s, transform 0.1s",
-    display: "flex",
-    alignItems: "center",
-    gap: "5px",
+    padding: "12px 0",
   },
-  sendButtonDisabled: {
-    backgroundColor: "#a5d6a7",
-    cursor: "not-allowed",
-  },
-  // Resultados y Contexto
   resultsContainer: {
-    marginTop: "20px",
+    marginTop: "10px",
     display: "flex",
     flexDirection: "column",
     gap: "20px",
@@ -167,23 +153,14 @@ const styles = {
     backgroundColor: "#fff3e0",
     color: "#ef6c00",
   },
-  errorBox: {
-    backgroundColor: "#ffebee",
-    color: "#c62828",
-    padding: "15px",
-    borderRadius: "8px",
-    border: "1px solid #ef9a9a",
-    margin: "10px 0",
-    fontWeight: "bold",
-  },
   loadingDots: {
     display: "flex",
     gap: "5px",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     alignItems: "center",
     color: colors.textLight,
     fontStyle: "italic",
-    padding: "10px",
+    padding: "10px 0",
   },
 };
 
@@ -193,14 +170,14 @@ const LoadingChat = () => (
       <span className="dot">.</span>
       <span className="dot">.</span>
       <span className="dot">.</span>
-      Analizando grafo y generando evaluación curricular
+      Analizando currículum y generando evaluación
     </div>
     <style>{`
-            @keyframes dotFlashing { 0% { opacity: 0.2; } 50% { opacity: 1; } 100% { opacity: 0.2; } }
-            .dot { animation: dotFlashing 1s infinite linear; }
-            .dot:nth-child(2) { animation-delay: 0.2s; }
-            .dot:nth-child(3) { animation-delay: 0.4s; }
-        `}</style>
+      @keyframes dotFlashing { 0% { opacity: 0.2; } 50% { opacity: 1; } 100% { opacity: 0.2; } }
+      .dot { animation: dotFlashing 1s infinite linear; }
+      .dot:nth-child(2) { animation-delay: 0.2s; }
+      .dot:nth-child(3) { animation-delay: 0.4s; }
+    `}</style>
   </div>
 );
 
@@ -212,15 +189,12 @@ function App() {
   const [cargando, setCargando] = useState(false);
   const [, setError] = useState("");
 
-  const [historial, setHistorial] = useState([
-    {
-      sender: "ai",
-      type: "text",
-      content:
-        "¡Hola, docente! 👋 Soy tu asistente pedagógico. Describe qué tema y grado necesitas evaluar (primaria 1º a 4º) y diseñaré una propuesta basada en el currículum.",
-    },
-  ]);
+  const { textareaRef, adjustHeight } = useAutoResizeTextarea({
+    minHeight: 44, // Reducido para que inicie como una sola línea estética
+    maxHeight: 200,
+  });
 
+  const [historial, setHistorial] = useState([]);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -239,12 +213,13 @@ function App() {
   };
 
   const generarEvaluacion = async (e) => {
-    e.preventDefault();
-    if (!consulta.trim()) return;
+    if (e) e.preventDefault();
+    if (!consulta.trim() || cargando) return;
 
     const nuevaConsulta = consulta;
     setError("");
     setConsulta("");
+    adjustHeight(true);
 
     setHistorial((prev) => [
       ...prev,
@@ -254,11 +229,11 @@ function App() {
 
     try {
       const response = await axios.post(
-        "https://localhost:7237/api/recuperacion/orquestar",
+        "https://localhost:7237/api/interpretacion/orquestar",
         { consulta: nuevaConsulta },
       );
 
-      if (response.data && response.data.esExitoso) {
+      if (response.data) {
         setHistorial((prev) => [
           ...prev,
           {
@@ -268,11 +243,16 @@ function App() {
           },
         ]);
       } else {
-        throw new Error("El servidor no devolvió un resultado exitoso.");
+        throw new Error("El servidor no devolvió datos.");
       }
     } catch (err) {
+      // Agregamos la búsqueda de la propiedad 'error' u 'Error' que viene del NotFound
+      // y mantenemos 'mensajeError' para los BadRequest de los parámetros.
       const msgError =
         err.response?.data?.error ||
+        err.response?.data?.Error ||
+        err.response?.data?.mensajeError ||
+        err.response?.data?.MensajeError ||
         "Error al conectar con el servidor educativo.";
 
       setError(msgError);
@@ -293,34 +273,28 @@ function App() {
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      generarEvaluacion(e);
+      generarEvaluacion();
     }
   };
 
-  // ------------------------------------------------------------------
-  // NUEVA FUNCIÓN: Procesa el JSON y lo convierte en una UI amigable
-  // ------------------------------------------------------------------
   const renderizarEvaluacion = (evaluacionData) => {
     let datos = evaluacionData;
 
-   // 1. Intentamos convertir el string a objeto JSON si viene como texto
-if (typeof evaluacionData === 'string') {
-  try {
-    datos = JSON.parse(evaluacionData);
-  } catch { // <-- Simplemente quita la (e) aquí
-    // Si falla (porque no es JSON sino texto normal/markdown), usamos el renderizado anterior
-    return (
-      <ReactMarkdown
-        remarkPlugins={[remarkMath]}
-        rehypePlugins={[rehypeKatex]}
-      >
-        {prepararMatematicas(evaluacionData)}
-      </ReactMarkdown>
-    );
-  }
-}
+    if (typeof evaluacionData === "string") {
+      try {
+        datos = JSON.parse(evaluacionData);
+      } catch {
+        return (
+          <ReactMarkdown
+            remarkPlugins={[remarkMath]}
+            rehypePlugins={[rehypeKatex]}
+          >
+            {prepararMatematicas(evaluacionData)}
+          </ReactMarkdown>
+        );
+      }
+    }
 
-    // 2. Si logramos obtener el objeto y tiene la estructura "Preguntas"
     if (datos && datos.Preguntas) {
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
@@ -374,7 +348,9 @@ if (typeof evaluacionData === 'string') {
                       backgroundColor: inciso.EsCorrecta
                         ? "#f0fdf4"
                         : "#ffffff",
-                      border: `1px solid ${inciso.EsCorrecta ? "#86efac" : "#d1d5db"}`,
+                      border: `1px solid ${
+                        inciso.EsCorrecta ? "#86efac" : "#d1d5db"
+                      }`,
                       display: "flex",
                       flexDirection: "column",
                     }}
@@ -425,7 +401,6 @@ if (typeof evaluacionData === 'string') {
       );
     }
 
-    // 3. Fallback: Si es un objeto JSON pero no tiene la estructura que esperamos, lo mostramos limpio
     return (
       <pre
         style={{
@@ -446,7 +421,7 @@ if (typeof evaluacionData === 'string') {
     }
 
     if (msg.type === "result") {
-      const { parametros, subgrafo, evaluacionGenerada } = msg.data;
+      const { temaPrincipal, preguntas } = msg.data;
       return (
         <div style={styles.resultsContainer}>
           <div style={styles.contextCard}>
@@ -454,16 +429,16 @@ if (typeof evaluacionData === 'string') {
               📊 Contexto Curricular Extraído
             </h3>
             <p style={{ fontSize: "16px" }}>
-              <strong>Tema Principal:</strong> {parametros.temaPrincipal}
+              <strong>Tema Principal:</strong> {temaPrincipal}
               <span style={{ color: colors.textLight, marginLeft: "10px" }}>
-                (Grado: {parametros.gradoEscolar}º)
+                (Grado: {preguntas}º)
               </span>
             </p>
             <h4 style={{ marginBottom: "10px", color: colors.textMain }}>
               Conceptos Relacionados en Grafo:
             </h4>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-              {subgrafo.map((nodo, index) => (
+              {(preguntas || []).map((nodo, index) => (
                 <span
                   key={index}
                   style={{
@@ -492,15 +467,21 @@ if (typeof evaluacionData === 'string') {
               📝 Propuesta de Evaluación
             </h3>
 
-            {/* AQUÍ UTILIZAMOS LA NUEVA FUNCIÓN */}
-            {renderizarEvaluacion(evaluacionGenerada)}
+            {renderizarEvaluacion(msg.data)}
 
             <button
               style={{
-                ...styles.sendButton,
-                marginTop: "30px",
                 backgroundColor: colors.primary,
+                color: "white",
+                border: "none",
+                padding: "12px 24px",
+                borderRadius: "24px",
+                fontSize: "15px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                marginTop: "30px",
                 width: "100%",
+                display: "flex",
                 justifyContent: "center",
               }}
             >
@@ -514,70 +495,119 @@ if (typeof evaluacionData === 'string') {
 
   return (
     <div style={styles.appContainer}>
-      <header style={styles.header}>
-        <h1 style={styles.title}>Generador de Evaluaciones Diagnósticas</h1>
-        <p style={styles.subtitle}>
-          Inteligencia Artificial para Educación Primaria (1º a 4º grado)
-        </p>
-      </header>
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
 
       <div style={styles.chatWindow}>
-        <div style={styles.chatMessages}>
-          {historial.map((msg, index) => (
-            <div
-              key={index}
-              style={{
-                ...styles.bubble,
-                ...(msg.sender === "user"
-                  ? styles.bubbleUser
-                  : styles.bubbleAi),
-                ...(msg.type === "result" ? { maxWidth: "95%" } : {}),
-              }}
+        {historial.length > 0 && (
+          <div className="hide-scrollbar" style={styles.chatMessages}>
+            {historial.map((msg, index) => (
+              <div
+                key={index}
+                style={{
+                  ...styles.bubble,
+                  ...(msg.sender === "user"
+                    ? styles.bubbleUser
+                    : styles.bubbleAi),
+                  ...(msg.type === "result" ? { maxWidth: "100%" } : {}),
+                }}
+              >
+                {renderMessageContent(msg)}
+              </div>
+            ))}
+
+            {cargando && <LoadingChat />}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+
+        {/* ========================================== */}
+        {/* ÁREA DE INPUT                              */}
+        {/* ========================================== */}
+        <div
+          className={`w-100 px-3 flex-shrink-0 transition-all ${
+            historial.length === 0 ? "m-auto pb-0" : "pb-4 pt-2 mt-auto"
+          }`}
+        >
+          {historial.length === 0 && (
+            <h2
+              className="text-center fw-bold mb-4"
+              style={{ color: "#111827", fontSize: "2rem" }}
             >
-              {renderMessageContent(msg)}
-            </div>
-          ))}
+              ¿Qué evaluación vamos a generar hoy?
+            </h2>
+          )}
 
-          {cargando && <LoadingChat />}
-          <div ref={messagesEndRef} />
-        </div>
-
-        <form onSubmit={generarEvaluacion} style={styles.inputArea}>
-          <textarea
-            value={consulta}
-            onChange={(e) => setConsulta(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ej: Necesito una evaluación de fracciones para 4º grado..."
-            rows={
-              consulta.split("\n").length > 3
-                ? 3
-                : consulta.split("\n").length || 1
-            }
-            style={styles.textarea}
-            required
-            disabled={cargando}
-          />
-          <button
-            type="submit"
-            disabled={cargando || !consulta.trim()}
-            style={{
-              ...styles.sendButton,
-              ...(cargando || !consulta.trim()
-                ? styles.sendButtonDisabled
-                : {}),
-            }}
+          {/* 2 y 3. Fondo blanco, bordes grisáceos, en una misma línea y se expande */}
+          <div
+            className="bg-white rounded-4 shadow-sm d-flex align-items-end p-2"
+            style={{ border: "1px solid #ced4da" }}
           >
-            {cargando ? "Procesando..." : "Generar →"}
-          </button>
-        </form>
-      </div>
+            <div className="flex-grow-1 overflow-hidden">
+              <textarea
+                ref={textareaRef}
+                value={consulta}
+                onChange={(e) => {
+                  setConsulta(e.target.value);
+                  adjustHeight();
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder="Ej: Necesito una evaluación de fracciones para 4º grado..."
+                // 1. Eliminado el "disabled={cargando}" para no bloquear el input
+                className="w-100 px-3 py-2 bg-transparent border-0 text-dark hide-scrollbar"
+                style={{
+                  resize: "none",
+                  outline: "none",
+                  boxShadow: "none",
+                  minHeight: "44px",
+                  fontSize: "15px",
+                  lineHeight: "1.5",
+                }}
+                rows={1}
+              />
+            </div>
 
-      <p
-        style={{ color: colors.textLight, fontSize: "12px", marginTop: "15px" }}
-      >
-        Desarrollado para el cuerpo docente. Basado en tecnología GraphRAG y
-        Neo4j.
-      </p>
+            <div className="ms-2 mb-1 me-1">
+              <button
+                type="button"
+                onClick={generarEvaluacion}
+                disabled={!consulta.trim()} // Tampoco se bloquea aquí por "cargando", permitiendo que el usuario pueda interactuar (la función por dentro ya previene el doble envío)
+                className={`btn d-flex align-items-center justify-content-center rounded-circle p-1 transition-all ${
+                  consulta.trim() ? "text-white" : "text-secondary"
+                }`}
+                style={{
+                  // 4. Fondo negro y flecha blanca si hay texto
+                  backgroundColor: consulta.trim() ? "#000000" : "#e9ecef",
+                  border: "none",
+                  width: "36px",
+                  height: "36px",
+                }}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 19V5" />
+                  <path d="M5 12l7-7 7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
