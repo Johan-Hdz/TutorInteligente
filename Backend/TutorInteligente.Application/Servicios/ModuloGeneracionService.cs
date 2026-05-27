@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.Json;
+﻿using System.Text.Json;
 using TutorInteligente.Application.Interfaces;
 using TutorInteligente.Application.Interfaces.Infrastructure;
 using TutorInteligente.Domain.Modelos;
