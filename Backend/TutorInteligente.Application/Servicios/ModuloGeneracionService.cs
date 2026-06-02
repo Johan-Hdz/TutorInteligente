@@ -100,34 +100,3 @@ Corrige EXCLUSIVAMENTE los errores mencionados basándote en tu respuesta anteri
 Devuelve ÚNICA Y EXCLUSIVAMENTE el JSON corregido y completo, sin etiquetas markdown ni explicaciones adicionales.";
     }
 }
-
-
-//public class ModuloGeneracionService(ILLMClient llmClient) : IModuloGeneracionService
-//{
-//    public async Task<string> GenerarEvaluacionAsync(Evaluacion esqueleto, string ejemploTexto)
-//    {
-//        // 1. Lógica pura de aplicación: Preparación de datos
-//        var jsonOptions = new JsonSerializerOptions { WriteIndented = true };
-//        string jsonEsqueleto = JsonSerializer.Serialize(esqueleto, jsonOptions);
-
-//        // 2. Lógica de negocio/dominio: El Prompt pedagógico
-//        string promptGraphRag = $@"Actúa como un Experto en Pedagogía Matemática y Diseño Curricular para la SEP (Nueva Escuela Mexicana). Tu tarea es generar el contenido de una evaluación matemática rellenando un esqueleto JSON predefinido.   
-
-//REGLAS ESTRICTAS:
-//1. Recibirás un JSON con la estructura de la evaluación. El tema principal a evaluar es '{esqueleto.TemaPrincipal}'.
-//2. EJEMPLO DE REFERENCIA: Usa el siguiente problema como guía de estilo, nivel de dificultad y contexto para generar los nuevos problemas:    
-//   ""{ejemploTexto}""
-//3. Para cada elemento en la lista de 'Preguntas', redacta un problema matemático práctico y contextualizado (apropiado para educación primaria) en el campo 'Enunciado'. BASATE EN EL EJEMPLO DE REFERENCIA.
-//4. Para cada 'Inciso' dentro de la pregunta, rellena los campos matemáticos de la siguiente manera:
-//   - 'ExpresionMatematica': Escribe la operación aritmética pura que resuelve o simula el inciso. OBLIGATORIO: Este valor DEBE ser una CADENA DE TEXTO (string) encerrada entre comillas dobles (ejemplo: """"1/2 + 1/6"""" o """"5 * 3""""). NUNCA escribas la fracción como un número crudo sin comillas.
-//   - 'ValorCalculado': Escribe el resultado final de la expresión tal como debe mostrársele al alumno. OBLIGATORIO: DEBE ser una CADENA DE TEXTO (string) entre comillas dobles. Si es una fracción, mantenla como fracción (ejemplo: """"1/2""""). Jamás lo escribas como un número crudo.
-//   - Si 'EsCorrecta' es true: La expresión debe resolver matemáticamente de forma correcta el problema planteado.
-//   - Si 'EsCorrecta' es false: La expresión debe ser INCORRECTA, reflejando un error lógico o de procedimiento basado en el distractor: 'TextoTema'.
-//5. El formato de salida debe ser ÚNICA Y EXCLUSIVAMENTE el JSON modificado y relleno. No agregues etiquetas markdown (como ```json).
-
-//ESQUELETO A RELLENAR:{jsonEsqueleto}";
-
-//        // 3. Delegar la ejecución a la capa de infraestructura
-//        return await llmClient.EjecutarPromptAsync(promptGraphRag, temperature: 0.0f);
-//    }
-//}

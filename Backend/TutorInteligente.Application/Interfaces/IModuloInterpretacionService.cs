@@ -1,9 +1,8 @@
 ﻿using TutorInteligente.Domain.Modelos;
 
-namespace TutorInteligente.Application.Interfaces
+namespace TutorInteligente.Application.Interfaces;
+
+public interface IModuloInterpretacionService
 {
-    public interface IModuloInterpretacionService
-    {
-        Task<ParametrosEvaluacion> ProcesarConsultaAsync(string consulta);
-    }
+    Task<ParametrosEvaluacion> ProcesarConsultaAsync(string consulta);
 }

@@ -1,16 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace TutorInteligente.Domain.Modelos;
 
-namespace TutorInteligente.Domain.Modelos
-{
-    public record ParametrosEvaluacion(
+public record ParametrosEvaluacion(
 
-        string TemaPrincipal,
-        int cantidadPreguntas,
-        // int GradoEscolar,
-        //List<string> ConceptosClave,
-        bool EsValida,
-        string MensajeError = ""
-    );
-}
+    string TemaPrincipal,
+    int cantidadPreguntas,
+    bool EsValida,
+    string MensajeError = ""
+);

@@ -66,18 +66,6 @@ namespace TutorInteligente.Api.Controllers
                     Detalles = ex.Message
                 });
             }
-
-            ////PASO 4: Motor de Generación
-            //var evaluacion = await motorGeneracionMeai.GenerarEvaluacionAsync(esqueletoEvaluacion, contextoRecuperado.Mensaje);
-
-
-            //// Paso 5 Validación de la respuesta del LLM
-            //var validacion = await moduloValidacionRespuesta.ValidarRespuestaLlm(evaluacion);
-
-            //if (validacion.EvaluacionValidada == null)
-            //    return BadRequest(validacion.MensajeError);
-
-            //return Ok(evaluacion);
         }
     }
 }

@@ -1,7 +1,4 @@
 ﻿using Microsoft.Extensions.AI;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using TutorInteligente.Application.Interfaces.Infrastructure;
 
 namespace TutorInteligente.Infrastructure.ServiciosLlm;

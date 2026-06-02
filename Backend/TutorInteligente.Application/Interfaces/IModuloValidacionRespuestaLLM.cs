@@ -1,11 +1,8 @@
-﻿using NCalc;
+﻿using TutorInteligente.Domain.Modelos;
 
-using TutorInteligente.Domain.Modelos;
+namespace TutorInteligente.Application.Interfaces;
 
-namespace TutorInteligente.Application.Interfaces
+public interface IModuloValidacionRespuestaLLM
 {
-    public interface IModuloValidacionRespuestaLLM
-    {
-        Task<(bool EsValido, List<string> Errores, Evaluacion? EvaluacionValidada)> ValidarRespuestaLlm(string jsonLlmOutput);
-    }
+    Task<(bool EsValido, List<string> Errores, Evaluacion? EvaluacionValidada)> ValidarRespuestaLlm(string jsonLlmOutput);
 }

@@ -31,13 +31,6 @@ var clienteEmbeddingsOpenAi = new EmbeddingClient("text-embedding-3-small", apiK
 // 3. Lo convertimos a la interfaz estándar de Microsoft.Extensions.AI y lo registramos
 IEmbeddingGenerator<string, Embedding<float>> miGeneradorEmbeddings = clienteEmbeddingsOpenAi.AsIEmbeddingGenerator();
 builder.Services.AddSingleton(miGeneradorEmbeddings);
-
-//// Indicar el modelo y la clave al crear el ChatClient de OpenAI.
-//// 2. CREAMOS la variable
-//IChatClient miClienteIa = new ChatClient("gpt-4o-mini", apiKey).AsIChatClient();
-
-//// 3. Registrar el ChatClient de OpenAI como Singleton (solo necesitamos uno para toda la app)
-//builder.Services.AddSingleton<IChatClient>(miClienteIa);
 #endregion
 
 #region Configuracion de Neo4j
