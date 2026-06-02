@@ -10,10 +10,10 @@ public class Neo4jService(IDriver driver) : INeo4jService
     {
         // Usamos búsqueda vectorial (db.index.vector.queryNodes) para encontrar el nodo más similar
         var query = @"
-    CALL db.index.vector.queryNodes('nombre_tema_embedding_index', 1, $tema) YIELD node AS t, score
-    WHERE score >= 0.85
-    OPTIONAL MATCH (t)-[:REQUIERE_DE]->(p:Tema)
-    RETURN t.problemaTexto AS ejemplo, collect(p.nombreTema) AS prerrequisitos, score";
+            CALL db.index.vector.queryNodes('nombre_tema_embedding_index', 1, $tema) YIELD node AS t, score
+            WHERE score >= 0.85
+            OPTIONAL MATCH (t)-[:REQUIERE_DE]->(p:Tema)
+            RETURN t.problemaTexto AS ejemplo, collect(p.nombreTema) AS prerrequisitos, score";
 
         // 0.85 es una metrica de confianza y pueden preguntar por que
 

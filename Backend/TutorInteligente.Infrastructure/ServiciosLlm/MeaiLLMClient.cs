@@ -8,19 +8,18 @@ namespace TutorInteligente.Infrastructure.ServiciosLlm;
 
 public class MeaiLLMClient(IChatClient chatClient) : ILLMClient
 {
-    public async Task<string> EjecutarPromptAsync(string prompt, float temperature)
+    public async Task<string> EjecutarPromptAsync(IList<ChatMessage> mensajes, float temperature)
     {
         var opciones = new ChatOptions { Temperature = temperature };
 
         try
         {
-            var mensajes = new[] { new ChatMessage(ChatRole.User, prompt) };
+            // Ya no creamos el arreglo aquí, pasamos el historial completo
             var respuesta = await chatClient.GetResponseAsync(mensajes, opciones);
             return respuesta.Text ?? "{}";
         }
         catch (Exception ex)
         {
-            // El manejo de errores de conexión/API va aquí
             return $"{{\"error\": \"Error interno en la API del LLM: {ex.Message}\"}}";
         }
     }

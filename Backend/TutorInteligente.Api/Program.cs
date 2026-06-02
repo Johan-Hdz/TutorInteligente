@@ -73,8 +73,11 @@ builder.Services.AddScoped<IExtractorEntidades, ExtractorEntidadesMeai>();
 builder.Services.AddScoped<IRecuperadorHibridoService, RecuperadorHibridoService>();
 
 
-// 4. Registro del servicio de generación de la estructura base de la evaluación (Fase 1)
+// 3. Registro del servicio de generación de la estructura base de la evaluación (Fase 1)
 builder.Services.AddScoped<IGenerarEstructuraEvaluacion, GenerarEstructuraEvaluacion>();
+
+// 4. Registro del servicio de validación de la respuesta del LLM
+builder.Services.AddScoped<IModuloValidacionRespuestaLLM, ModuloValidacionRespuestaLLM>();
 
 
 // Agregar el motor de generacion

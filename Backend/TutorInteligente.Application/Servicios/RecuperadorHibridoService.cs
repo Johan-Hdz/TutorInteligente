@@ -19,11 +19,11 @@ public class RecuperadorHibridoService(IEmbeddingGenerator<string, Embedding<flo
 
         // 3. Mapear la tupla al modelo de dominio ContextoRecuperado
         var contextoGrafo = new ContextoRecuperado(
-    Parametros: parametros,             // Pasas los parámetros que llegaron al método
-    Subgrafo: datosNeo4j.Prerrequisitos, // Extraes la lista de la tupla
-    EsExitoso: true,                    // Indicamos que la recuperación fue exitosa
-    Mensaje: datosNeo4j.EjemploTexto    // Guardas el ejemplo del problema aquí
-);
+            Parametros: parametros,             // Pasas los parámetros que llegaron al método
+            Subgrafo: datosNeo4j.Prerrequisitos, // Extraes la lista de la tupla
+            EsExitoso: true,                    // Indicamos que la recuperación fue exitosa
+            Mensaje: datosNeo4j.EjemploTexto    // Guardas el ejemplo del problema aquí
+        );
         return contextoGrafo;
     }
 }

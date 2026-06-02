@@ -7,6 +7,6 @@ namespace TutorInteligente.Application.Interfaces
 {
     public interface IModuloGeneracionService
     {
-        Task<string> GenerarEvaluacionAsync(Evaluacion esqueleto, string ejemploTexto);
+        Task<Evaluacion> GenerarEvaluacionAsync(Evaluacion esqueleto, string ejemploTexto);
     }
 }

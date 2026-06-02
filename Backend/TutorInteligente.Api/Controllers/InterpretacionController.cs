@@ -6,9 +6,9 @@ namespace TutorInteligente.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class InterpretacionController(IModuloInterpretacionService interpretacionService, 
-        IRecuperadorHibridoService recuperadorHibridoService, 
-        IGenerarEstructuraEvaluacion evaluacionGeneratorService, 
+    public class InterpretacionController(IModuloInterpretacionService interpretacionService,
+        IRecuperadorHibridoService recuperadorHibridoService,
+        IGenerarEstructuraEvaluacion evaluacionGeneratorService,
         IModuloGeneracionService motorGeneracionMeai) : ControllerBase
     {
         [HttpPost("orquestar")]
@@ -44,9 +44,40 @@ namespace TutorInteligente.Api.Controllers
             );
 
 
-            // PASO 4 (Próximamente): Motor de Generación
-             var evaluacion = await motorGeneracionMeai.GenerarEvaluacionAsync(esqueletoEvaluacion, contextoRecuperado.Mensaje);
-             return Ok(evaluacion);
+            // PASO 4 y 5: Motor de Generación (Incluye Validación y Auto-Corrección interna)
+            try
+            {
+                var evaluacionValidada = await motorGeneracionMeai.GenerarEvaluacionAsync(esqueletoEvaluacion, contextoRecuperado.Mensaje);
+
+                // EMPAQUETAMOS TODO PARA REACT
+                return Ok(new
+                {
+                    temaPrincipal = parametros.TemaPrincipal,
+                  
+                    subgrafo = contextoRecuperado.Subgrafo,
+                    evaluacion = evaluacionValidada
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return UnprocessableEntity(new
+                {
+                    Error = "No se pudo generar una evaluación matemáticamente válida tras varios intentos.",
+                    Detalles = ex.Message
+                });
+            }
+
+            ////PASO 4: Motor de Generación
+            //var evaluacion = await motorGeneracionMeai.GenerarEvaluacionAsync(esqueletoEvaluacion, contextoRecuperado.Mensaje);
+
+
+            //// Paso 5 Validación de la respuesta del LLM
+            //var validacion = await moduloValidacionRespuesta.ValidarRespuestaLlm(evaluacion);
+
+            //if (validacion.EvaluacionValidada == null)
+            //    return BadRequest(validacion.MensajeError);
+
+            //return Ok(evaluacion);
         }
     }
 }

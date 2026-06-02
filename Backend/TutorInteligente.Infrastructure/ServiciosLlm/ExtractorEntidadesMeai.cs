@@ -1,5 +1,5 @@
 ﻿using System.Text.Json;
-using Microsoft.Extensions.AI; // <-- Importante
+using Microsoft.Extensions.AI;
 using TutorInteligente.Application.Interfaces.Infrastructure;
 using TutorInteligente.Domain.Modelos;
 
