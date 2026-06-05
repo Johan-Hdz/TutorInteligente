@@ -4,5 +4,8 @@ namespace TutorInteligente.Application.Interfaces;
 
 public interface IGenerarEstructuraEvaluacion
 {
-    Evaluacion GenerarEstructura(string temaPrincipal, List<string> prerrequisitos, int cantidadPreguntas);
+    Evaluacion GenerarEstructura(
+    string temaPrincipal,
+    List<TemaJerarquico> prerrequisitos,
+    int cantidadPreguntas);
 }

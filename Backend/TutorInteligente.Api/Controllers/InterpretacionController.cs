@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TutorInteligente.Api.DTOs;
 using TutorInteligente.Application.Interfaces;
+using TutorInteligente.Domain.Modelos;
 
 namespace TutorInteligente.Api.Controllers
 {
@@ -23,7 +24,7 @@ namespace TutorInteligente.Api.Controllers
 
             // PASO 2: Recuperación Híbrida (Embedding + Neo4j)
             // Pasamos el objeto completo porque el recuperador podría necesitar el GradoEscolar para filtrar
-            var contextoRecuperado = await recuperadorHibridoService.RecuperarContextoAsync(parametros);
+            ContextoRecuperado contextoRecuperado = await recuperadorHibridoService.RecuperarContextoAsync(parametros);
 
             if (contextoRecuperado == null || !contextoRecuperado.Subgrafo.Any())
             {
@@ -32,16 +33,11 @@ namespace TutorInteligente.Api.Controllers
 
             // PASO 3: Ensamblaje del Esqueleto (Motor de Generación - Fase 1)
 
-            // a) Extraemos solo los nombres de los prerrequisitos del Subgrafo recuperado
-            var nombresPrerrequisitos = contextoRecuperado.Subgrafo
-                                                          .Select(p => p.Nombre)
-                                                          .ToList();
-            // b) Generamos la estructura base determinista
             var esqueletoEvaluacion = evaluacionGeneratorService.GenerarEstructura(
-                temaPrincipal: parametros.TemaPrincipal,
-                prerrequisitos: nombresPrerrequisitos,
-                cantidadPreguntas: parametros.cantidadPreguntas
-            );
+     temaPrincipal: parametros.TemaPrincipal,
+     prerrequisitos: contextoRecuperado.Subgrafo,
+     cantidadPreguntas: parametros.cantidadPreguntas
+ );
 
 
             // PASO 4 y 5: Motor de Generación (Incluye Validación y Auto-Corrección interna)

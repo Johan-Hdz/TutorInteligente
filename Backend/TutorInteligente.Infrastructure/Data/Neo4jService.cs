@@ -10,10 +10,17 @@ public class Neo4jService(IDriver driver) : INeo4jService
     {
         // Usamos búsqueda vectorial (db.index.vector.queryNodes) para encontrar el nodo más similar
         var query = @"
-            CALL db.index.vector.queryNodes('nombre_tema_embedding_index', 1, $tema) YIELD node AS t, score
-            WHERE score >= 0.85
-            OPTIONAL MATCH (t)-[:REQUIERE_DE]->(p:Tema)
-            RETURN t.problemaTexto AS ejemplo, collect(p.nombreTema) AS prerrequisitos, score";
+    CALL db.index.vector.queryNodes('nombre_tema_embedding_index', 1, $tema)
+    YIELD node AS t, score
+    WHERE score >= 0.85
+    OPTIONAL MATCH (t)-[:REQUIERE_DE]->(p:Tema)
+    RETURN
+        t.problemaTexto AS ejemplo,
+        collect({
+            nombreTema: p.nombreTema,
+            modeloMatematico: p.modeloMatematico
+        }) AS prerrequisitos,
+        score";
 
         // 0.85 es una metrica de confianza y pueden preguntar por que
 
@@ -33,12 +40,24 @@ public class Neo4jService(IDriver driver) : INeo4jService
                 ejemploTexto = ejemploValue.As<string>();
             }
 
-            var nombresPrerrequisitos = result.Current["prerrequisitos"].As<List<string>>();
-            foreach (var nombre in nombresPrerrequisitos)
+            var prerrequisitosCypher =
+                result.Current["prerrequisitos"]
+                      .As<List<Dictionary<string, object>>>();
+
+            foreach (var prerrequisito in prerrequisitosCypher)
             {
-                if (!string.IsNullOrWhiteSpace(nombre))
+                var nombreTema = prerrequisito["nombreTema"]?.ToString();
+                var modeloMatematico = prerrequisito["modeloMatematico"]?.ToString();
+
+                if (!string.IsNullOrWhiteSpace(nombreTema))
                 {
-                    prerrequisitos.Add(new TemaJerarquico(nombre, true));
+                    prerrequisitos.Add(
+                        new TemaJerarquico(
+                            nombreTema,
+                            modeloMatematico ?? string.Empty,
+                            true
+                        )
+                    );
                 }
             }
         }

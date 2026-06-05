@@ -3,7 +3,10 @@ using TutorInteligente.Domain.Modelos;
 
 public class GenerarEstructuraEvaluacion : IGenerarEstructuraEvaluacion
 {
-    public Evaluacion GenerarEstructura(string temaPrincipal, List<string> prerrequisitos, int cantidadPreguntas)
+    public Evaluacion GenerarEstructura(
+    string temaPrincipal,
+    List<TemaJerarquico> prerrequisitos,
+    int cantidadPreguntas)
     {
         if (cantidadPreguntas <= 0)
             throw new ArgumentException("La cantidad de preguntas debe ser mayor a cero.");
@@ -22,14 +25,32 @@ public class GenerarEstructuraEvaluacion : IGenerarEstructuraEvaluacion
 
         for (int i = 0; i < cantidadPreguntas; i++)
         {
+            var distractor1 = piscinaDistractores[distractorIndex++];
+            var distractor2 = piscinaDistractores[distractorIndex++];
+            var distractor3 = piscinaDistractores[distractorIndex++];
             // Extraer el tema principal y 3 distractores de la piscina global
             var opcionesPregunta = new List<Inciso>
-            {
-                new Inciso("", temaPrincipal, true), // La respuesta correcta
-                new Inciso("", piscinaDistractores[distractorIndex++], false),
-                new Inciso("", piscinaDistractores[distractorIndex++], false),
-                new Inciso("", piscinaDistractores[distractorIndex++], false)
-            };
+{
+    new Inciso("", temaPrincipal, true),
+
+    new Inciso(
+        "",
+        distractor1.Nombre,
+        false,
+        modeloMatematico: distractor1.modeloMatematico),
+
+    new Inciso(
+        "",
+        distractor2.Nombre,
+        false,
+        modeloMatematico: distractor2.modeloMatematico),
+
+    new Inciso(
+        "",
+        distractor3.Nombre,
+        false,
+        modeloMatematico: distractor3.modeloMatematico)
+};
 
             // Permutación Local: Mezclar las 4 opciones de esta pregunta específica
             var opcionesArray = opcionesPregunta.ToArray();
@@ -51,25 +72,24 @@ public class GenerarEstructuraEvaluacion : IGenerarEstructuraEvaluacion
         return new Evaluacion(temaPrincipal, preguntas);
     }
 
-    private string[] ConstruirPiscinaDistractores(List<string> prerrequisitos, int totalNecesarios)
+    private TemaJerarquico[] ConstruirPiscinaDistractores(
+    List<TemaJerarquico> prerrequisitos,
+    int totalNecesarios)
     {
-        var piscina = new List<string>(totalNecesarios);
+        var piscina = new List<TemaJerarquico>(totalNecesarios);
 
-        // 1. Asignación Garantizada: Todos los prerrequisitos deben aparecer al menos una vez
         piscina.AddRange(prerrequisitos);
 
-        // 2. Relleno (Padding): Completar los espacios faltantes eligiendo prerrequisitos al azar
         int faltantes = totalNecesarios - piscina.Count;
+
         for (int i = 0; i < faltantes; i++)
         {
             int randomIndex = Random.Shared.Next(prerrequisitos.Count);
             piscina.Add(prerrequisitos[randomIndex]);
         }
 
-        // Validación de seguridad: si k (prerrequisitos) > 3n (espacios), truncamos para no desbordar
         var piscinaFinal = piscina.Take(totalNecesarios).ToArray();
 
-        // 3. Permutación Global (Fisher-Yates nativo)
         Random.Shared.Shuffle(piscinaFinal);
 
         return piscinaFinal;

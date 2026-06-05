@@ -2,5 +2,6 @@
 
 public record TemaJerarquico(
     string Nombre,
+    string modeloMatematico,
     bool EsPrerrequisito
 );

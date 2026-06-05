@@ -64,7 +64,7 @@ public class ModuloGeneracionService(
     private string ConstruirPromptInicial(Evaluacion esqueleto, string ejemploTexto)
     {
         // (Este método se queda EXACTAMENTE IGUAL a como lo tenías)
-        var jsonOptions = new JsonSerializerOptions { WriteIndented = true };
+        var jsonOptions = new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping};
         string jsonEsqueleto = JsonSerializer.Serialize(esqueleto, jsonOptions);
 
         return $@"Actúa como un Experto en Pedagogía Matemática y Diseño Curricular para la SEP (Nueva Escuela Mexicana). Tu tarea es generar el contenido de una evaluación matemática rellenando un esqueleto JSON predefinido.   
@@ -74,12 +74,14 @@ REGLAS ESTRICTAS:
 2. EJEMPLO DE REFERENCIA: Usa el siguiente problema como guía de estilo, nivel de dificultad y contexto para generar los nuevos problemas:    
    ""{ejemploTexto}""
 3. Para cada elemento en la lista de 'Preguntas', redacta un problema matemático práctico y contextualizado (apropiado para educación primaria) en el campo 'Enunciado'. BASATE EN EL EJEMPLO DE REFERENCIA.
-4. Para cada 'Inciso' dentro de la pregunta, rellena los campos asegurando que la 'ExpresionMatematica' SIEMPRE coincida matemáticamente con el 'ValorCalculado':
-   - 'ExpresionMatematica': Escribe la operación aritmética pura. OBLIGATORIO: DEBE ser una CADENA DE TEXTO (string) entre comillas dobles (ejemplo: """"1/2 + 1/6""""). NUNCA la escribas sin comillas.
-   - 'ValorCalculado': Escribe el resultado final de la expresión. OBLIGATORIO: DEBE ser una CADENA DE TEXTO (string) entre comillas dobles (ejemplo: """"1/2"""").
-   - Si 'EsCorrecta' es true: Escribe la operación matemáticamente correcta que resuelve el problema y su resultado correcto.
-   - Si 'EsCorrecta' es false: Escribe la operación INCORRECTA (el procedimiento erróneo que seguiría el alumno según el 'TextoTema') y su resultado incorrecto. Por ejemplo, si el distractor es sumar directo en 1/2 + 1/3, la ExpresionMatematica debe mostrar el error: """"(1+1)/(2+3)"""" y el ValorCalculado """"2/5"""". NUNCA escribas la fórmula correcta seguida de un resultado incorrecto.
-5. El formato de salida debe ser ÚNICA Y EXCLUSIVAMENTE el JSON modificado y relleno. No agregues etiquetas markdown (como ```json).
+4. Usa los datos del problema que TU generaste para hacer los calculos de todos los incisos. NO USES LOS DATOS DEL EJEMPLO DE REFERENCIA PARA LOS CALCULOS, SOLO COMO GUÍA DE ESTILO Y CONTEXTO.
+5. Para cada 'Inciso' dentro de la pregunta, rellena todos los campos.
+   - 'ExpresionMatematica': OBLIGATORIO: DEBE ser una CADENA DE TEXTO (string) entre comillas dobles (ejemplo: """"1/2""""). NUNCA la escribas sin comillas.
+   - Si 'EsCorrecta' es true: Resuelve el problema correctamente. Rellena 'expresionMatematica' con la operación mmatemática correcta. 
+   - Si 'EsCorrecta' es false: SOLO USA la expresión de 'modeloMatematico' para generar el resultado. Sustituye los valores del problema que generaste en 'modeloMatematico'. 'ExpresionMatematica' = 'modeloMatematico' con los valores sustituidos.
+ - 'ValorCalculado': Escribe el resultado final de la 'ExpresionMatematica'. OBLIGATORIO: DEBE ser una CADENA DE TEXTO (string) entre comillas dobles (ejemplo: """"1/2"""").
+6. El formato de salida debe ser ÚNICA Y EXCLUSIVAMENTE el JSON modificado y relleno. No agregues etiquetas markdown (como ```json).
+
 
 ESQUELETO A RELLENAR:{jsonEsqueleto}";
     }
@@ -100,3 +102,9 @@ Corrige EXCLUSIVAMENTE los errores mencionados basándote en tu respuesta anteri
 Devuelve ÚNICA Y EXCLUSIVAMENTE el JSON corregido y completo, sin etiquetas markdown ni explicaciones adicionales.";
     }
 }
+
+//- Suma de fracciones con distinto denominador: """"(a+c)/(b+d)""""
+
+//- Multiplicación de fracciones """"(a*d)/(b*c)""""
+
+//- División de fracciones  """"(a*b)/(c*d)""""
