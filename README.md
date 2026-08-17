@@ -74,3 +74,105 @@ La solución opera bajo una arquitectura desacoplada por capas:# TutorInteligent
 ```bash
 git clone [https://github.com/JoahanHernandez/GraphRAG-MathEvaluator.git](https://github.com/JoahanHernandez/GraphRAG-MathEvaluator.git)
 cd GraphRAG-MathEvaluator
+```
+
+### 2. Configurar la Base de Datos Neo4j
+
+1. Inicia tu instancia local de Neo4j en el puerto por defecto:
+
+   ```text
+   bolt://localhost:7687
+   ```
+
+2. Asegúrate de tener habilitado el plugin **Neo4j GenAI**.
+
+3. Crea el índice vectorial ejecutando el siguiente comando en la consola de Cypher:
+
+   ```cypher
+   CREATE VECTOR INDEX tema_embedding_index IF NOT EXISTS
+   FOR (n:Tema) ON (n.nombreTemaEmbedding)
+   OPTIONS {
+     indexConfig: {
+       `vector.dimensions`: 1536,
+       `vector.similarity_function`: 'cosine'
+     }
+   };
+   ```
+
+---
+
+### 3. Configuración del Backend (.NET 10)
+
+Navega a la carpeta del proyecto backend y configura tus credenciales en `appsettings.json` o mediante variables de entorno:
+
+```json
+{
+  "Neo4j": {
+    "Uri": "bolt://localhost:7687",
+    "User": "neo4j",
+    "Password": "TU_PASSWORD"
+  },
+  "OpenAI": {
+    "ApiKey": "TU_OPENAI_API_KEY",
+    "EmbeddingModel": "text-embedding-3-small",
+    "ChatModel": "gpt-4o-mini"
+  }
+}
+```
+
+Ejecuta el servidor backend:
+
+```bash
+cd backend/MathEvaluator.Api
+dotnet restore
+dotnet run
+```
+
+La API estará disponible en:
+
+```text
+https://localhost:5001
+```
+
+> O en el puerto configurado en el proyecto.
+
+---
+
+### 4. Configuración del Frontend (React + Vite)
+
+En otra terminal, accede al directorio del frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Abre tu navegador en:
+
+```text
+http://localhost:5173
+```
+
+---
+
+## 💻 Flujo de Uso del Sistema
+
+1. **Entrada de Consulta:** El docente escribe una solicitud en lenguaje natural en la interfaz. Por ejemplo:
+
+   > *"Genera una evaluación de 3 preguntas del tema suma de fracciones con distinto denominador"*
+
+2. **Procesamiento:** El backend interpreta los parámetros de la solicitud, localiza el nodo correspondiente en Neo4j, extrae los prerrequisitos conceptuales —por ejemplo, `suma_enteros` y `division_enteros`—, ensambla el contexto de generación y solicita la redacción de los reactivos al LLM.
+
+3. **Validación Automática:** NCalc evalúa las expresiones matemáticas generadas. Si existen discrepancias numéricas o inconsistencias en los resultados, se activa un ciclo interno de autocorrección.
+
+4. **Visualización:** La interfaz despliega los reactivos generados mediante tarjetas interactivas, mostrando la respuesta correcta, los distractores y su respectiva justificación pedagógica.
+
+---
+
+## 👨‍💻 Autor y Créditos
+
+* **Autor:** Joahan Israel Hernández Granados
+* **Institución:** Instituto Politécnico Nacional (IPN) — Escuela Superior de Ingeniería Mecánica y Eléctrica, Unidad Culhuacán (ESIME Culhuacán)
+* **Carrera:** Ingeniería en Computación
+* **Asesores:** Dr. Juan Arturo Pérez Cebreros y M. en C. Luis Carlos Castro Madrid
