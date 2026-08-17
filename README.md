@@ -61,8 +61,7 @@ La solución opera bajo una arquitectura desacoplada por capas:# TutorInteligent
 |  - Neo4j: Grafo DAG (:Tema, [:REQUIERE_DE]) con índice HNSW                   |
 |  - OpenAI API: text-embedding-3-small & gpt-4o-mini                           |
 +-------------------------------------------------------------------------------+
-
-
+```
 ## 🚀 Instalación y Configuración Local
 
 ### Requisitos Previos
