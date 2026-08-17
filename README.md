@@ -30,27 +30,38 @@ Este proyecto implementa una arquitectura **GraphRAG** que desacopla la recupera
 ---
 
 ## 🏛️ Arquitectura del Sistema
+
+La solución opera bajo una arquitectura desacoplada por capas:# TutorInteligente
+## Arquitectura del Sistema
+
+```text
 +-------------------------------------------------------------------------------+
 |                            CAPA DE PRESENTACIÓN (UI)                          |
+|                                                                               |
 |  - Interfaz conversacional SPA en React + Vite                                |
 |  - Entrada en lenguaje natural (texto plano) y renderizado interactivo MCQ    |
 +---------------------------------------+---------------------------------------+
-| HTTPS / REST (JSON)
-+---------------------------------------v---------------------------------------+
+                                        |
+                                        | HTTPS / REST (JSON)
+                                        ▼
++-------------------------------------------------------------------------------+
 |                          CAPA DE LÓGICA DE APLICACIÓN                         |
+|                                                                               |
 |  - Módulo de Interpretación: Extracción de parámetros con LLM                 |
 |  - Motor de Recuperación Híbrida: Vector search (score >= 0.85) + DAG         |
 |  - Generador Autocorrectivo: Prompts contextualizados con NEM                 |
 |  - Validador Matemático: Auditoría con NCalc (Tolerancia decimal y reintentos)|
 +---------------------------------------+---------------------------------------+
-| Protocolo Bolt / HTTPS
-+---------------------------------------v---------------------------------------+
+                                        |
+                                        | Protocolo Bolt / HTTPS
+                                        ▼
++-------------------------------------------------------------------------------+
 |                          CAPA DE DATOS Y SERVICIOS                            |
+|                                                                               |
 |  - Neo4j: Grafo DAG (:Tema, [:REQUIERE_DE]) con índice HNSW                   |
 |  - OpenAI API: text-embedding-3-small & gpt-4o-mini                           |
 +-------------------------------------------------------------------------------+
 
-La solución opera bajo una arquitectura desacoplada por capas:# TutorInteligente
 
 ## 🚀 Instalación y Configuración Local
 
