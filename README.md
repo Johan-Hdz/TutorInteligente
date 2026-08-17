@@ -32,3 +32,16 @@ Este proyecto implementa una arquitectura **GraphRAG** que desacopla la recupera
 ## 🏛️ Arquitectura del Sistema
 
 La solución opera bajo una arquitectura desacoplada por capas:# TutorInteligente
+
+## 🚀 Instalación y Configuración Local
+
+### Requisitos Previos
+* [.NET 10 SDK](https://dotnet.microsoft.com/)
+* [Node.js](https://nodejs.org/) (versión 18 o superior)
+* [Neo4j Desktop](https://neo4j.com/download/) o Neo4j Community Server 5.x (con Plugin GenAI instalado)
+* Cuenta activa con clave de API de [OpenAI](https://platform.openai.com/)
+
+### 1. Clonar el Repositorio
+```bash
+git clone [https://github.com/JoahanHernandez/GraphRAG-MathEvaluator.git](https://github.com/JoahanHernandez/GraphRAG-MathEvaluator.git)
+cd GraphRAG-MathEvaluator
